@@ -20,8 +20,8 @@ var (
 	ptnRepx			= regexp.MustCompile(`&nbsp;&nbsp;`)
 	ptnFooterRegexp = regexp.MustCompile(`<div id="footer">(.+?)</div>`)
 	ptnLink 		= regexp.MustCompile(`<div class="link">(.+?)</div>`)
-
 	IndexPage		="http://www.uuxs.la/book/42/42677/"
+	wg sync.WaitGroup
 )
 
 func Get(url string) (content string, statusCode int) {
@@ -46,7 +46,7 @@ type IndexItem struct {
 	title string
 }
 
-//gbk转utf8
+//gbk to utf8
 func ConvertToString(src string, srcCode string, tagCode string)(result string){
     srcCoder := mahonia.NewDecoder(srcCode)
     srcResult := srcCoder.ConvertString(src)
@@ -56,19 +56,17 @@ func ConvertToString(src string, srcCode string, tagCode string)(result string){
     return
 }
 
-//var chanel=make(chan IndexItem)
-
-func findIndex(content string) (indexs chan IndexItem,length int, err error) {
+func findIndex(content string) (indexs []IndexItem, err error) {
 	content  = ConvertToString(content, "gbk", "utf-8")
 	matches:=ptnAhref.FindAllStringSubmatch(content,-1);
-	length=len(matches)
-	indexs = make(chan IndexItem, length)
-	for _, item := range matches {
-		indexs <- IndexItem{IndexPage + item[1], item[2]}
+	indexs = make([]IndexItem, len(matches))
+	for i, item := range matches {
+		indexs[i]= IndexItem{IndexPage + item[1], item[2]}
 	}
 	return
 }
-//读取url中所有标签为
+
+//提取感兴趣内容
 func readContent(url string) (content string) {
 	content, statusCode := Get(url)
 	if statusCode != 200 {
@@ -90,8 +88,6 @@ func Join(s []string)(content string){
 	return
 }
 
-var wg sync.WaitGroup
-
 func main() {
 	fmt.Println(`Get index ...`)
 	s, statusCode := Get(IndexPage)
@@ -99,13 +95,12 @@ func main() {
 		return
 	}
 
-	ch,len, _ := findIndex(s)
-	wg.Add(len)
-	for w := range ch{
-		go goContents(w)
+	ch, _ := findIndex(s)
+	wg.Add(len(ch))
+	
+	for _,d:=range ch{
+		go goContents(d)
 	}
-
-	close(ch)
 	wg.Wait()
 }
 
