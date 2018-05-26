@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ptnIndexItem    = regexp.MustCompile(`<a target="_blank" href="(.+\.html)" title=".+" >(.+)</a>`)
+	ptnIndexItem    =  regexp.MustCompile(`<a target="_blank" href="(.+\.html)" title=".+" >(.+)</a>`)
 	ptnContentRough = regexp.MustCompile(`(?s).*<div class="artcontent">(.*)<div id="zhanwei">.*`)
 	ptnBrTag        = regexp.MustCompile(`<br>`)
 	ptnHTMLTag      = regexp.MustCompile(`(?s)</?.*?>`)
@@ -21,7 +21,6 @@ var (
 	ptnFooterRegexp = regexp.MustCompile(`<div id="footer">(.+?)</div>`)
 	ptnLink 		= regexp.MustCompile(`<div class="link">(.+?)</div>`)
 	IndexPage		="http://www.uuxs.la/book/42/42677/"
-	wg sync.WaitGroup
 )
 
 func Get(url string) (content string, statusCode int) {
@@ -47,18 +46,18 @@ type IndexItem struct {
 }
 
 //gbk to utf8
-func ConvertToString(src string, srcCode string, tagCode string)(result string){
+func ConvertToString(src *string, srcCode string, tagCode string)(result string){
     srcCoder := mahonia.NewDecoder(srcCode)
-    srcResult := srcCoder.ConvertString(src)
+    srcResult := srcCoder.ConvertString(*src)
     tagCoder := mahonia.NewDecoder(tagCode)
     _, cdata, _ := tagCoder.Translate([]byte(srcResult), true)
     result = string(cdata)
     return
 }
 
-func findIndex(content string) (indexs []IndexItem, err error) {
-	content  = ConvertToString(content, "gbk", "utf-8")
-	matches:=ptnAhref.FindAllStringSubmatch(content,-1);
+func findIndex(content *string) (indexs []IndexItem, err error) {
+	content2:= ConvertToString(content, "gbk", "utf-8")
+	matches:=ptnAhref.FindAllStringSubmatch(content2,-1);
 	indexs = make([]IndexItem, len(matches))
 	for i, item := range matches {
 		indexs[i]= IndexItem{IndexPage + item[1], item[2]}
@@ -73,16 +72,16 @@ func readContent(url string) (content string) {
 		fmt.Print("Fail to get the raw data from", url, "\n")
 		return
 	}
-	content  = ConvertToString(content, "gbk", "utf-8")
+	content  = ConvertToString(&content, "gbk", "utf-8")
 	dialog := regexp.MustCompile(`<div id="BookText">(.+?)</div>`)
 	s:=dialog.FindAllString(content,100)
-	content=Join(s)
+	content=join(&s)
 	content= ptnHTMLTag.ReplaceAllString(content,"\r\n")
 	content =ptnRepx.ReplaceAllString(content," ")
 	return
 }
-func Join(s []string)(content string){
-	for _,val:=range s{
+func join(s *[]string)(content string){
+	for _,val:=range *s{
 		content+=val
 	}
 	return
@@ -94,17 +93,18 @@ func main() {
 	if statusCode != 200 {
 		return
 	}
-
-	ch, _ := findIndex(s)
+	var wg sync.WaitGroup
+	ch, _ := findIndex(&s)
 	wg.Add(len(ch))
 	
 	for _,d:=range ch{
-		go goContents(d)
+		go goContents(d,&wg)
 	}
 	wg.Wait()
 }
 
-func goContents(ch IndexItem)  {
+func goContents(ch IndexItem,wg *sync.WaitGroup)  {
+	
 	defer wg.Done();
 	fileName := fmt.Sprintf("./m/%s.txt",ch.title)
 	content := readContent(ch.url)
