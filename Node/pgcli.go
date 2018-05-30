@@ -1,18 +1,29 @@
 package spider
 
 import (
-	"io/ioutil"
+	"log"
 	"regexp"
 	"sync"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 var (
 	ptnRepx    = regexp.MustCompile(`&nbsp;&nbsp;`)
 	ptnHTMLTag = regexp.MustCompile(`(?s)</?.*?>`)
 )
+
+var db *gorm.DB
+var err error
+
+func init() {
+	db, err = gorm.Open("postgres", "host=localhost user=postgres dbname=gorm sslmode=disable password=68957423")
+	if err != nil {
+		log.Panic(err)
+	}
+	db.AutoMigrate(&Nodes{})
+}
 
 type Nodes struct {
 	gorm.Model
@@ -22,33 +33,25 @@ type Nodes struct {
 }
 
 func GetNodes(P *Node) {
-	/*db, err := gorm.Open("postgres", "host=localhost user=postgres dbname=gorm sslmode=disable password=68957423")
-	defer db.Close()
-	if err != nil {
-		log.Panic(err)
-	}
-	// 自动迁移模式
-	db.AutoMigrate(&Nodes{})*/
+
 	lens := len(P.child)
-	//nodes := list.New()
-	//nodes := make([]Nodes, lens)
 	var wg sync.WaitGroup
 	wg.Add(lens)
+
 	for _, item := range P.child {
 		go goGetContent(item.url, item.title, &wg)
 	}
 	wg.Wait()
-
 }
 
 func goGetContent(url string, t string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	n := &Node{}
 	n.setUrl(url).httpGet()
-	//N := Nodes{}
 	if n.statusCode == 200 {
 		content := readContent2(n.content)
-		ioutil.WriteFile(t, []byte(content), 0644)
+		//ioutil.WriteFile(t, []byte(content), 0644)
+		db.Create(&Nodes{Url: url, Tittle: t, Contents: content})
 	}
 }
 

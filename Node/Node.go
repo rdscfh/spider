@@ -21,11 +21,10 @@ var (
 	reg = regexp.MustCompile(`<a href="(.+?html)">(.+?)</a>`)
 )
 
-func Exque(url string) {
+func Run(url string) {
 	n := &Node{}
 	n.setUrl(url).httpGet().getChildsNode()
 	GetNodes(n)
-	//n.getChildsContent()
 }
 
 func (n *Node) setUrl(url string) *Node {
@@ -72,12 +71,3 @@ func (n *Node) readContent(contents *string) {
 	}
 	n.child = childs
 }
-
-/*
-func (n *Node) getChildsContent() {
-	//var wg sync.WaitGroup
-	for _, ch := range n.child {
-		ch.httpGet().getChildsNodeSync()
-	}
-	//wg.Wait()
-}*/

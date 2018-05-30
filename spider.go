@@ -19,5 +19,6 @@ func main() {
 	}
 
 	url := viper.GetString("url")
-	spider.Exque(url)
+
+	spider.Run(url)
 }
