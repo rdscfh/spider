@@ -4,11 +4,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"sync"
 )
 
 type Node struct {
-	child []*Node //子目录们
-
+	child      []*Node //子目录们
 	url        string
 	title      string
 	statusCode int
@@ -23,8 +23,7 @@ var (
 
 func Run(url string) {
 	n := &Node{}
-	n.setUrl(url).httpGet().getChildsNode()
-	GetNodes(n)
+	n.setUrl(url).httpGet().getChildsNode().GetNodes()
 }
 
 func (n *Node) setUrl(url string) *Node {
@@ -70,4 +69,46 @@ func (n *Node) readContent(contents *string) {
 		}
 	}
 	n.child = childs
+}
+
+func (n *Node) GetNodes() {
+	lens := len(n.child)
+	var wg sync.WaitGroup
+	wg.Add(lens)
+	for _, item := range n.child {
+		go item.goGetContent(&wg)
+		//go goGetContent()
+	}
+	wg.Wait()
+	db.Close()
+}
+
+func (n *Node) goGetContent(wg *sync.WaitGroup) {
+	defer wg.Done()
+	n.httpGet()
+	if n.statusCode == 200 {
+		n.readContent2()
+		n.savetoPG()
+	}
+}
+
+func (n *Node) readContent2() {
+	dialog := regexp.MustCompile(`<div id="BookText">(.+?)</div>`)
+	s := dialog.FindAllString(*(n.content), 100)
+	contents := join(s)
+	contents = ptnHTMLTag.ReplaceAllString(contents, "\r\n")
+	contents = ptnRepx.ReplaceAllString(contents, " ")
+	n.content = &contents
+}
+
+func join(s []string) (content string) {
+	for _, val := range s {
+		content += val
+	}
+	return
+}
+
+func (n *Node) savetoPG() {
+	db.Create(n)
+	//ioutil.WriteFile(n.title+".txt", []byte(*(n.content)), 0666) //写入文件(字节数组)
 }
