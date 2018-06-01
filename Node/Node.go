@@ -71,9 +71,9 @@ func (n *Node) readContent() {
 	for i, item := range matches {
 
 		childs[i] = &Node{
+			Ids:   item[1],
 			Url:   n.Url + item[1],
 			Title: item[2],
-			Ids:   item[1],
 		}
 	}
 	n.childs = childs

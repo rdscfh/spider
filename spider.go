@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 
 	"./Node"
 	"github.com/spf13/viper"
 )
 
 func main() {
+
+	var MULTICORE int = runtime.NumCPU() //number of core
+	runtime.GOMAXPROCS(MULTICORE)        //running in multicore
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/appname/")  // path to look for the config file in
