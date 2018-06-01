@@ -2,15 +2,9 @@ package spider
 
 import (
 	"log"
-	"regexp"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-)
-
-var (
-	ptnRepx    = regexp.MustCompile(`&nbsp;&nbsp;`)
-	ptnHTMLTag = regexp.MustCompile(`(?s)</?.*?>`)
 )
 
 var db *gorm.DB

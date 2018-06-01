@@ -18,12 +18,14 @@ type Node struct {
 }
 
 var (
-	reg = regexp.MustCompile(`<a href="(.+?html)">(.+?)</a>`)
+	reg        = regexp.MustCompile(`<a href="(.+?html)">(.+?)</a>`)
+	ptnRepx    = regexp.MustCompile(`&nbsp;&nbsp;`)
+	ptnHTMLTag = regexp.MustCompile(`(?s)</?.*?>`)
 )
 
 func Run(url string) {
 	n := &Node{}
-	n.setUrl(url).httpGet().getChildsNode().GetNodes()
+	n.setUrl(url).httpGet().getChildsNode().getChilsContent()
 }
 
 func (n *Node) setUrl(url string) *Node {
@@ -71,13 +73,12 @@ func (n *Node) readContent(contents *string) {
 	n.child = childs
 }
 
-func (n *Node) GetNodes() {
+func (n *Node) getChilsContent() {
 	lens := len(n.child)
 	var wg sync.WaitGroup
 	wg.Add(lens)
 	for _, item := range n.child {
 		go item.goGetContent(&wg)
-		//go goGetContent()
 	}
 	wg.Wait()
 	db.Close()
