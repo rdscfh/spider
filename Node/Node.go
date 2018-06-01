@@ -14,7 +14,7 @@ type Node struct {
 	statusCode int
 	isutf8     bool
 	encoding   string //`gbk`
-	content    *string
+	content    string
 }
 
 var (
@@ -25,7 +25,7 @@ var (
 
 func Run(url string) {
 	n := &Node{}
-	n.setUrl(url).httpGet().getChildsNode().getChilsContent()
+	n.setUrl(url).httpGet().getChildsNode().getChildsContent()
 }
 
 func (n *Node) setUrl(url string) *Node {
@@ -48,20 +48,20 @@ func (n *Node) httpGet() *Node {
 	n.statusCode = resp.StatusCode
 	rs := ConvertToString(data, "gbk", "utf-8")
 	str := string(rs)
-	n.content = &str
+	n.content = str
 	return n
 }
 
 func (n *Node) getChildsNode() *Node {
 	if n.statusCode == 200 {
-		n.readContent(n.content)
+		n.readContent()
 	}
 	return n
 }
 
 //解析出子url
-func (n *Node) readContent(contents *string) {
-	matches := reg.FindAllStringSubmatch(*contents, -1)
+func (n *Node) readContent() {
+	matches := reg.FindAllStringSubmatch(n.content, -1)
 	childs := make([]*Node, len(matches))
 
 	for i, item := range matches {
@@ -73,7 +73,7 @@ func (n *Node) readContent(contents *string) {
 	n.child = childs
 }
 
-func (n *Node) getChilsContent() {
+func (n *Node) getChildsContent() {
 	lens := len(n.child)
 	var wg sync.WaitGroup
 	wg.Add(lens)
@@ -95,11 +95,11 @@ func (n *Node) goGetContent(wg *sync.WaitGroup) {
 
 func (n *Node) readContent2() {
 	dialog := regexp.MustCompile(`<div id="BookText">(.+?)</div>`)
-	s := dialog.FindAllString(*(n.content), 100)
+	s := dialog.FindAllString(n.content, 100)
 	contents := join(s)
 	contents = ptnHTMLTag.ReplaceAllString(contents, "\r\n")
 	contents = ptnRepx.ReplaceAllString(contents, " ")
-	n.content = &contents
+	n.content = contents
 }
 
 func join(s []string) (content string) {
@@ -110,6 +110,6 @@ func join(s []string) (content string) {
 }
 
 func (n *Node) savetoPG() {
-	db.Create(n)
-	//ioutil.WriteFile(n.title+".txt", []byte(*(n.content)), 0666) //写入文件(字节数组)
+	//db.Create(n)
+	ioutil.WriteFile(n.title+".txt", []byte(n.content), 0666) //写入文件(字节数组)
 }
