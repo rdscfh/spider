@@ -9,7 +9,6 @@ func ConvertToString(src []byte, srcCode string, tagCode string) (result []byte)
 	srcCoder := mahonia.NewDecoder(srcCode)
 	srcResult := srcCoder.ConvertString(string(src))
 	tagCoder := mahonia.NewDecoder(tagCode)
-	_, cdata, _ := tagCoder.Translate([]byte(srcResult), true)
-	result = cdata
+	_, result, _ = tagCoder.Translate([]byte(srcResult), true)
 	return
 }
