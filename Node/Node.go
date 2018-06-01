@@ -5,16 +5,20 @@ import (
 	"net/http"
 	"regexp"
 	"sync"
+
+	"github.com/jinzhu/gorm"
 )
 
 type Node struct {
-	child      []*Node //子目录们
+	gorm.Model
+	childs     []*Node //子目录们
 	Url        string
 	Title      string
 	statusCode int
 	isutf8     bool
 	encoding   string //`gbk`
-	Content    string
+	Content    *string
+	Ids        string
 }
 
 var (
@@ -48,7 +52,7 @@ func (n *Node) httpGet() *Node {
 	n.statusCode = resp.StatusCode
 	rs := ConvertToString(data, "gbk", "utf-8")
 	str := string(rs)
-	n.Content = str
+	n.Content = &str
 	return n
 }
 
@@ -61,23 +65,25 @@ func (n *Node) getChildsNode() *Node {
 
 //解析出子url
 func (n *Node) readContent() {
-	matches := reg.FindAllStringSubmatch(n.Content, -1)
+	matches := reg.FindAllStringSubmatch(*(n.Content), -1)
 	childs := make([]*Node, len(matches))
 
 	for i, item := range matches {
+
 		childs[i] = &Node{
 			Url:   n.Url + item[1],
 			Title: item[2],
+			Ids:   item[1],
 		}
 	}
-	n.child = childs
+	n.childs = childs
 }
 
 func (n *Node) getChildsContent() {
-	lens := len(n.child)
+	lens := len(n.childs)
 	var wg sync.WaitGroup
 	wg.Add(lens)
-	for _, item := range n.child {
+	for _, item := range n.childs {
 		go item.goGetContent(&wg)
 	}
 	wg.Wait()
@@ -95,11 +101,11 @@ func (n *Node) goGetContent(wg *sync.WaitGroup) {
 
 func (n *Node) readContent2() {
 	dialog := regexp.MustCompile(`<div id="BookText">(.+?)</div>`)
-	s := dialog.FindAllString(n.Content, 100)
+	s := dialog.FindAllString(*(n.Content), 100)
 	contents := join(s)
 	contents = ptnHTMLTag.ReplaceAllString(contents, "\r\n")
 	contents = ptnRepx.ReplaceAllString(contents, " ")
-	n.Content = contents
+	n.Content = &contents
 }
 
 func join(s []string) (content string) {
