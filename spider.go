@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"runtime"
 
-	"./Node"
+	"github.com/rdscfh/spider/Node"
 	"github.com/spf13/viper"
 )
 
 func main() {
-
 	var MULTICORE int = runtime.NumCPU() //number of core
 	runtime.GOMAXPROCS(MULTICORE)        //running in multicore
 
