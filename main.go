@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/rdscfh/spider/Node"
+	spider "github.com/rdscfh/spider/Node"
 	"github.com/spf13/viper"
 )
 
